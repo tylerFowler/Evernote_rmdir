@@ -10,6 +10,7 @@ Feature List (so far)
 ----------------------------
 - Only delete reminders that have been marked as completed for a certain number of days
 - List view to select the notebooks to include in the deletion
+- Exclude reminders with a particular tag
 
 That's all I've thought up so far. Have any ideas for some features? I'll be glad to hear them.
 
