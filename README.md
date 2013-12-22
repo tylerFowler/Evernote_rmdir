@@ -1,8 +1,8 @@
 Evernote rmdir
 ============================
-Are you like me and have a steady pile of growing notes that were once reminders? Unfortunately, Evernote doesn't offer an option to delete all reminders in your account that are marekd as completed, and so now I have about a dozen useless notes in my personal notebook marked "go grocery shopping" or "study for that exam tomorrow!"
+Are you like me and have a steady pile of growing notes that were once reminders? Unfortunately, Evernote doesn't offer an option to delete all reminders in your account that are marked as completed, and so now I have about a dozen useless notes in my personal notebook marked "go grocery shopping" or "study for that exam tomorrow!"
 
-This kind of thing causes me grief, so I thought I'd write a simple .NET Windows applicationt that deletes these unwanted reminders.
+This kind of thing causes me grief, so I thought I'd write a simple .NET Windows application that deletes these unwanted reminders.
 
 Right now, I'm hard at work on this project in between Physics and Calculus assignments, but come back later and there might be.. stuff!
 
