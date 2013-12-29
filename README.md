@@ -4,13 +4,19 @@ Are you like me and have a steady pile of growing notes that were once reminders
 
 This kind of thing causes me grief, so I thought I'd write a simple .NET Windows application that deletes these unwanted reminders.
 
-Feature List (so far)
-----------------------------
+####Feature List (so far)
 - Only delete reminders that have been marked as completed for a certain number of days
 - List view to select the notebooks to include in the deletion
 - Exclude reminders with a particular tag
 
 That's all I've thought up so far. Have any ideas for some features? I'll be glad to hear them.
+
+###To Do:
+- Finish and test the query to the Evernote API
+- Handle a RATE_LIMIT_REACHED exception from Evernote
+- Implement OAuth (just used the developer sandbox right now)
+- Add a report page that shows how many notes were successfully deleted/skipped after the user runs the tool on their Evernote account
+- Add an about page with the license stuff for this application and for Evernote's API
 
 ### License
 The MIT License (MIT)
