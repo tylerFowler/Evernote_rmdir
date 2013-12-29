@@ -17,4 +17,15 @@ namespace EvernoteInterface
         public EvernoteAPIVersionError(string message, Exception inner) : base(message, inner) { }
 
     }
+
+    /// <summary>
+    /// Generic error to send to the main application signifying something has gone wrong on the Evernote side of things.
+    /// Note: because this is used to send to the main application, it's important that any information that needs
+    ///       to be sent to the user is sent in Evernote Interface.
+    /// </summary>
+    [Serializable()]
+    public class EvernoteException : System.Exception
+    {
+        public EvernoteException() : base() { }
+    }
 }

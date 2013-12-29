@@ -4,8 +4,6 @@ Are you like me and have a steady pile of growing notes that were once reminders
 
 This kind of thing causes me grief, so I thought I'd write a simple .NET Windows application that deletes these unwanted reminders.
 
-Right now, I'm hard at work on this project in between Physics and Calculus assignments, but come back later and there might be.. stuff!
-
 Feature List (so far)
 ----------------------------
 - Only delete reminders that have been marked as completed for a certain number of days

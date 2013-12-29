@@ -1,4 +1,5 @@
-﻿using Evernote.EDAM.NoteStore;
+﻿using Evernote.EDAM.Error;
+using Evernote.EDAM.NoteStore;
 using Evernote.EDAM.Type;
 using Evernote.EDAM.UserStore;
 using System;
@@ -25,7 +26,16 @@ namespace EvernoteInterface
         /// <returns>List of Notebook objects.</returns>
         public List<Notebook> GetNotebooks()
         {
-            return noteStore.listNotebooks(authToken);
+            // Try block that catches instances where listNotebooks returns either a EDAMUserException or EDAMSystemException
+            try
+            {
+                return noteStore.listNotebooks(authToken);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                throw new EvernoteException();
+            }
         }
 
         /// <summary>
@@ -45,25 +55,83 @@ namespace EvernoteInterface
             else //matches all completed reminders marked as done before the number of days specified
                 filter.Words = "reminderDoneTime:* -reminderDoneTime:day-" + numDays.ToString();
 
-            if (tag != null && tag != String.Empty)
+            if (String.IsNullOrEmpty(tag))
                 filter.Words += " -tag:" + tag; 
 
             NotesMetadataResultSpec spec = new NotesMetadataResultSpec();
             spec.IncludeNotebookGuid = true;
             spec.IncludeAttributes = true;
 
-            NotesMetadataList notes = noteStore.findNotesMetadata(authToken, filter, 0, Evernote.EDAM.Limits.Constants.EDAM_USER_NOTES_MAX, spec);
-
-            // Now convert each note to a Reminder and add it to the list to be returned
-            List<Reminder> result = new List<Reminder>();
-
-            foreach (NoteMetadata note in notes.Notes)
+            //TODO: make sure this only catches the stuff in the notebooks that we want
+            /* Try block for retrieving the metadata for the notes we want.
+             * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
+             *   BAD_DATA_FORMAT "offset" : not between 0 and EDAM_USER_NOTES_MAX
+             *   BAD_DATA_FORMAT "maxNotes" : not between 0 and EDAM_USER_NOTES_MAX
+             *   BAD_DATA_FORMAT "NoteFilter.notebookGuid" : notebook GUID malformed
+             *   BAD_DATA_FORMAT "NoteFilter.tagGuids" : if any tags are malformed
+             *   BAD_DATA_FORMAT "NoteFilter.words" : if search string is too long (shouldn't be)
+             * Possible outcomes with Evernote.EDAM.Error.EDAMNotFoundException:
+             *   "Notebook.guid" : Evernote can't find notebook with this GUID
+             */
+            try
             {
-                Reminder convertedNote = ConvNoteToReminder(note);
-                result.Add(convertedNote);
-            }
+                NotesMetadataList notes = noteStore.findNotesMetadata(authToken, filter, 0, Evernote.EDAM.Limits.Constants.EDAM_USER_NOTES_MAX, spec);
 
-            return result;
+                // Now convert each note to a Reminder and add it to the list to be returned
+                List<Reminder> result = new List<Reminder>();
+
+                foreach (NoteMetadata note in notes.Notes)
+                {
+                    Reminder convertedNote = ConvNoteToReminder(note);
+                    result.Add(convertedNote);
+                }
+
+                return result;
+            }
+            catch (EDAMUserException e)
+            {
+                if (e.ErrorCode == EDAMErrorCode.BAD_DATA_FORMAT)
+                {
+                    String userErrorMessage = String.Empty;
+
+                    switch (e.Parameter)
+                    {
+                        case "offset":
+                            userErrorMessage = "Offset not between 0 and EDAM_USER_NOTES_MAX";
+                            break;
+                        case "maxNotes":
+                            userErrorMessage = "Max number of notes to return isn't between 0 and EDAM_USER_NOTES_MAX";
+                            break;
+                        case "NoteFilter.notebookGuid":
+                            userErrorMessage = "Notebook GUID is malformed";
+                            break;
+                        case "NoteFilter.tagGuids":
+                            userErrorMessage = "Tags aren't formatted correctly, only select one tag name to be used";
+                            break;
+                        case "NoteFilter.words":
+                            userErrorMessage = "Search string is too long, try using a shorter tag?";
+                            break;
+                        default:
+                            userErrorMessage = e.ToString();
+                            break;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(e.ToString());
+                }
+
+                throw new EvernoteException();
+            }
+            catch (EDAMNotFoundException e) //NOTE: maybe this isn't necessary? I don't search by notebook guid at all.
+            {
+                if (e.ToString().Contains("Notebook.guid"))
+                    MessageBox.Show("Notebook wasn't found in the Evernote service (search is by GUID)");
+                else
+                    MessageBox.Show(e.ToString());
+
+                throw new EvernoteException();
+            }
         }
 
         /// <summary>
@@ -86,8 +154,54 @@ namespace EvernoteInterface
         /// <param name="reminders">The list of Reminder objects who's note should be deleted</param>
         public void DeleteReminders(List<Reminder> reminders)
         {
+            //TODO: implement logging here, as this is where everything from the report will come from
+
+            //NOTE: for this we don't necessarily want to throw an EvernoteException exception, these will actually be handled gracefully.
+            //      For PERMISSION_DENIED: we just want to inform the user that they don't have permission, maybe prompt user to reenter credentials? 
+            //                             Could be something we want to call in OAuth... which would be a problem for us.
+            //      For DATA_CONFLICT: just skip this note, add it to the log if I go that route
+
+            /* Try block for deleting the selected notes
+             * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
+             *   PERMISSION_DENIED "Note" : user doesn't have permission to update/delete notes
+             *   DATA_CONFLICT "Note.guid" : the note has already been deleted
+             * Possible outcomes with Evernote.EDAM.Error.EDAMNotFoundException:
+             *   "Note.guid" : note not found by GUID
+             */
             foreach (Reminder r in reminders)
-                noteStore.deleteNote(authToken, r.GetReminderGuid());
+            {
+                try
+                {
+                    noteStore.deleteNote(authToken, r.GetReminderGuid());
+                }
+                catch (EDAMUserException e)
+                {
+                    if (e.ErrorCode == EDAMErrorCode.PERMISSION_DENIED && e.Parameter == "Note")
+                    {
+                        MessageBox.Show("You don't have permission to update or delete notes on this Evernote account");
+                        throw new EvernoteException();
+                    }
+                    else if (e.ErrorCode == EDAMErrorCode.DATA_CONFLICT && e.Parameter == "Note.guid")
+                    {
+                        //the note's already been deleted so just skip this one, add it to the log if necessary
+                        continue;
+                    }
+                    else
+                        continue; //if there's some other problem just skip this note
+                }
+                catch (EDAMNotFoundException e)
+                {
+                    if (e.ToString().Contains("Note.guid"))
+                    {
+                        //if we're here, it means that the note wasn't found and we should skip it and log it in the report
+                        continue;
+                    }
+                    else
+                        continue; //if there's some other problem just skip this note
+                }
+            }
+
+            //here is where we're gonna wanna return information for the report
         }
     }
 }

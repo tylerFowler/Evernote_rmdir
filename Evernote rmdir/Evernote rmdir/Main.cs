@@ -41,7 +41,7 @@ namespace Evernote_rmdir
             { 
                 evernote = EvernoteDevAuth.Instance; 
             }
-            catch (Evernote.EDAM.Error.EDAMUserException) 
+            catch (EvernoteException) 
             { 
                 //the Evernote Interface should give the user details on what happened
                 Environment.Exit(0);
@@ -74,8 +74,11 @@ namespace Evernote_rmdir
         /// <param name="e"></param>
         private void btnCheckReminders_Click(object sender, EventArgs e)
         {
+            //TODO: gonna wanna catch EvernoteException too
             try
-            {
+            { 
+                //TODO: make sure that I'm only getting notes out of the notebooks that I want
+
                 ClearPreviousUserCriteria();
                 
                 CollectAndValidateUserCriteria();
@@ -91,9 +94,16 @@ namespace Evernote_rmdir
                 //enable to the run button
                 btnRun.Enabled = true;
             }
-            catch (ApplicationException)
+            catch (ApplicationException) 
             {
                 return;
+            }
+            catch (EvernoteException)
+            {
+                //TODO: if anything goes wrong with the Evernote search it's gonna be caught here. Not sure if I want to
+                //exit the application or guide the user to fix the issue it really depends on the error. We'll sort this out later.
+
+                //Environment.Exit(0);
             }
         }
 
@@ -157,7 +167,7 @@ namespace Evernote_rmdir
         {
             //simply call the delete on the finalized list, maybe ask the user if he/she is sure?
             //might also have it to where it has a message saying it's done or something... 
-            //make sure you catch everything Evernote might throw at you i.e. permissions!
+            //make sure you catch everything Evernote might throw at you i.e. permissions! - this is done on the Evernote Interface
         }
 
         private void Util_ShowFormValues()

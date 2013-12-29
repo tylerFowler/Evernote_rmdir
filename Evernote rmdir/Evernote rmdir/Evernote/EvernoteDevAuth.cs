@@ -39,7 +39,7 @@ namespace EvernoteInterface
             if (CheckIfValidAuthToken() == false)
             {
                 MessageBox.Show("You forgot to enter your developer token!");
-                throw new Evernote.EDAM.Error.EDAMUserException();
+                throw new EvernoteException();
             }
 
             Authorize();
@@ -62,12 +62,20 @@ namespace EvernoteInterface
         /// </summary>
         private void Authorize()
         {
-            Uri userStoreUrl = new Uri("https://" + evernoteHost + "/edam/user");
-            TTransport userStoreTransport = new THttpClient(userStoreUrl);
-            TProtocol userStoreProtocol = new TBinaryProtocol(userStoreTransport);
-            userStore = new UserStore.Client(userStoreProtocol);
+            try
+            {
+                Uri userStoreUrl = new Uri("https://" + evernoteHost + "/edam/user");
+                TTransport userStoreTransport = new THttpClient(userStoreUrl);
+                TProtocol userStoreProtocol = new TBinaryProtocol(userStoreTransport);
+                userStore = new UserStore.Client(userStoreProtocol);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                throw new EvernoteException();
+            }
 
-            //here to a try block to see if the version is ok or not.
+            //make sure the API version we're using is ok
             try
             {
                 bool versionOK = userStore.checkVersion("Evernote Evernote rmdir (C#)",
@@ -79,14 +87,58 @@ namespace EvernoteInterface
             catch (EvernoteAPIVersionError e)
             {
                 MessageBox.Show(e.ToString());
-                return;
+                throw new EvernoteException();
             }
 
-            String noteStoreUrl = userStore.getNoteStoreUrl(authToken); //This isn't used with OAuth
 
-            TTransport noteStoreTransport = new THttpClient(new Uri(noteStoreUrl));
-            TProtocol noteStoreProtocol = new TBinaryProtocol(noteStoreTransport);
-            noteStore = new NoteStore.Client(noteStoreProtocol);
+            /* Try block for creating a new NoteStore Client
+             * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
+             *   AUTH_EXPIRED "authenticationToken" : token has expired
+             *   BAD_DATA_FORMAT "authenticationToken" : token is malformed
+             *   INVALID_AUTH "authenticationToken" : token signature is invalid
+             */
+            try
+            {
+                String noteStoreUrl = userStore.getNoteStoreUrl(authToken); //This isn't used with OAuth
+
+                TTransport noteStoreTransport = new THttpClient(new Uri(noteStoreUrl));
+                TProtocol noteStoreProtocol = new TBinaryProtocol(noteStoreTransport);
+                noteStore = new NoteStore.Client(noteStoreProtocol);
+            }
+            catch (EDAMUserException e)
+            {
+                if (e.Parameter == "authenticationToken")
+                {
+                    String userErrorMessage = String.Empty;
+
+                    switch (e.ErrorCode)
+                    {
+                        case EDAMErrorCode.AUTH_EXPIRED:
+                            userErrorMessage = "Your developer token has expired";
+                            break;
+                        case EDAMErrorCode.BAD_DATA_FORMAT:
+                            userErrorMessage = "Your developer token is incorrect or malformed";
+                            break;
+                        case EDAMErrorCode.INVALID_AUTH:
+                            userErrorMessage = "Your developer token signature is invalid";
+                            break;
+                        default:
+                            userErrorMessage = e.ToString();
+                            break;
+                    }
+
+                    MessageBox.Show(userErrorMessage);
+                }
+                else
+                    MessageBox.Show(e.ToString());
+
+                throw new EvernoteException();
+            }
+            catch (EDAMSystemException e)
+            {
+                MessageBox.Show(e.ToString());
+                throw new EvernoteException();
+            }
         }
     }
 }
