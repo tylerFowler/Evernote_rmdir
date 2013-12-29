@@ -16,6 +16,9 @@ namespace Evernote_rmdir
 {
     public partial class Main : Form
     {
+        //constants
+        private const String STATUS_BAR_TEXT = "Number of completed Reminders to be deleted:";
+
         //primary interface into the Evernote service
         //use DevAuth for now, but later we'll use OAuth
         private EvernoteDevAuth evernote;
@@ -79,13 +82,16 @@ namespace Evernote_rmdir
 
                 lblStatusBar.Text = "Gathering information from your Evernote account...";
 
-                //run the search with the given criteria on the user's Evernote account
+                //NOTE: I'm not sure that these values won't be null... could be an issue
+                List<Reminder> reminders = evernote.GetCompletedRemindersMatchingCriteria(numCutoffDays, tagToExclude);
 
                 //update the status bar
+                lblStatusBar.Text = STATUS_BAR_TEXT + " " + reminders.Count;
 
                 //enable to the run button
+                btnRun.Enabled = true;
             }
-            catch (ApplicationException exc)
+            catch (ApplicationException)
             {
                 return;
             }
@@ -149,7 +155,9 @@ namespace Evernote_rmdir
         /// <param name="e"></param>
         private void btnRun_Click(object sender, EventArgs e)
         {
-
+            //simply call the delete on the finalized list, maybe ask the user if he/she is sure?
+            //might also have it to where it has a message saying it's done or something... 
+            //make sure you catch everything Evernote might throw at you i.e. permissions!
         }
 
         private void Util_ShowFormValues()
@@ -205,7 +213,6 @@ namespace Evernote_rmdir
 
         private void txtbxNumDaysOffset_TextChanged(object sender, EventArgs e)
         {
-            //TODO: Make sure you check this is a number when the check is ran
             //let's not be illiterate
             if (txtbxNumDaysOffset.Text == "1") lblDaysAgo.Text = "day ago";
             else lblDaysAgo.Text = "days ago";
