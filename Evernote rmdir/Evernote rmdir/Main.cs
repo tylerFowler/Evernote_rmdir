@@ -29,7 +29,8 @@ namespace Evernote_rmdir
         private int numCutoffDays;
         private bool excludeRemindersWithTag;
         private string tagToExclude;
-        private List<Notebook> includedNotebooks;
+        private List<Notebook> selectedNotebooks;
+        private List<Reminder> selectedReminders;
 
         String settingsPath = Path.Combine(Environment.CurrentDirectory, @"\settings.xml");
 
@@ -47,7 +48,8 @@ namespace Evernote_rmdir
                 Environment.Exit(0);
             }
 
-            includedNotebooks = new List<Notebook>();
+            selectedNotebooks = new List<Notebook>();
+            selectedReminders = new List<Reminder>();
 
             if (chkbxDeleteAllReminders.Checked == true)
                 ToggleDeleteAllReminders();
@@ -74,25 +76,20 @@ namespace Evernote_rmdir
         /// <param name="e"></param>
         private void btnCheckReminders_Click(object sender, EventArgs e)
         {
-            //TODO: gonna wanna catch EvernoteException too
             try
-            { 
-                //TODO: make sure that I'm only getting notes out of the notebooks that I want
-
+            {
                 ClearPreviousUserCriteria();
                 
                 CollectAndValidateUserCriteria();
 
-                lblStatusBar.Text = "Gathering information from your Evernote account...";
-
                 //NOTE: I'm not sure that these values won't be null... could be an issue
                 List<Reminder> reminders = evernote.GetCompletedRemindersMatchingCriteria(numCutoffDays, tagToExclude);
 
-                //update the status bar
-                lblStatusBar.Text = STATUS_BAR_TEXT + " " + reminders.Count;
+                selectedReminders = FilterRemindersFromNotebooks(reminders, selectedNotebooks);
 
-                //enable to the run button
-                btnRun.Enabled = true;
+                lblStatusBar.Text = STATUS_BAR_TEXT + " " + selectedReminders.Count;
+
+                btnRun.Enabled = (selectedReminders.Count > 0) ? true : false;
             }
             catch (ApplicationException) 
             {
@@ -100,18 +97,8 @@ namespace Evernote_rmdir
             }
             catch (EvernoteException)
             {
-                //TODO: if anything goes wrong with the Evernote search it's gonna be caught here. Not sure if I want to
-                //exit the application or guide the user to fix the issue it really depends on the error. We'll sort this out later.
-
-                //Environment.Exit(0);
-            }
-        }
-
-        private void ClearPreviousUserCriteria()
-        {
-            numCutoffDays = 0;
-            tagToExclude = String.Empty;
-            includedNotebooks.Clear();
+                return;
+            }                
         }
 
         /// <summary>
@@ -144,10 +131,10 @@ namespace Evernote_rmdir
             }
 
             //don't want to add to any previous notebooks
-            includedNotebooks.Clear();
+            selectedNotebooks.Clear();
 
             foreach (Object notebook in chkbxListNotebooks.CheckedItems)
-                includedNotebooks.Add((Notebook)notebook);
+                selectedNotebooks.Add((Notebook)notebook);
 
 
             //if no options are selected, remind the user to check at least one option
@@ -159,6 +146,19 @@ namespace Evernote_rmdir
         }
 
         /// <summary>
+        /// Takes a list of Reminders and a list of Notebooks and returns a list with only the reminders that belong to a notebook in the notebook list.
+        /// </summary>
+        /// <param name="reminderList"></param>
+        /// <param name="includedNotebooks"></param>
+        /// <returns>Resulting list of reminders filtered by notebook</returns>
+        private List<Reminder> FilterRemindersFromNotebooks(List<Reminder> reminderList, List<Notebook> includedNotebooks)
+        {
+            //finds all reminders that have a notebook Guid that exists in the notebooks list
+            //MessageBox.Show("Filtering...");
+            return reminderList.FindAll(r => includedNotebooks.Exists(n => n.Guid == r.GetNotebookGuid()));
+        }
+
+        /// <summary>
         /// Delete all queued up Reminders in the user's Evernote account.
         /// </summary>
         /// <param name="sender"></param>
@@ -167,7 +167,25 @@ namespace Evernote_rmdir
         {
             //simply call the delete on the finalized list, maybe ask the user if he/she is sure?
             //might also have it to where it has a message saying it's done or something... 
-            //make sure you catch everything Evernote might throw at you i.e. permissions! - this is done on the Evernote Interface
+            try //NOTE: this try block is where I'd do the report
+            {
+                evernote.DeleteReminders(selectedReminders);
+
+                lblStatusBar.Text = selectedReminders.Count + " Reminders successfully deleted";
+                ClearPreviousUserCriteria();
+            }
+            catch (EvernoteException)
+            {
+                return;
+            }
+        }
+
+        private void ClearPreviousUserCriteria()
+        {
+            numCutoffDays = 0;
+            tagToExclude = String.Empty;
+            selectedNotebooks.Clear();
+            selectedReminders.Clear();
         }
 
         private void Util_ShowFormValues()
@@ -177,7 +195,7 @@ namespace Evernote_rmdir
                             + "excludeRemindersWithTag: " + excludeRemindersWithTag + "\n"
                             + "tagToExclude: " + tagToExclude + "\n"
                             + "numCutoffDays: " + numCutoffDays
-                            + "notebooks count: " + includedNotebooks.Count);
+                            + "notebooks count: " + selectedNotebooks.Count);
         }
 
         /// <summary>
@@ -204,11 +222,19 @@ namespace Evernote_rmdir
         private void RepopulateNotebooks()
         {
             chkbxListNotebooks.Items.Clear();
-            List<Notebook> notebooks = evernote.GetNotebooks();
 
-            //add each notebook and make sure that it's state is initially set to be checked
-            foreach (Notebook notebook in notebooks)
-                chkbxListNotebooks.Items.Add(notebook, true);
+            try
+            {
+                List<Notebook> notebooks = evernote.GetNotebooks();
+
+                //add each notebook and make sure that it's state is initially set to be checked
+                foreach (Notebook notebook in notebooks)
+                    chkbxListNotebooks.Items.Add(notebook, true);
+            }
+            catch (EvernoteException)
+            {
+                return;
+            }
         }
 
         /// <summary>

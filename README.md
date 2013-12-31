@@ -12,9 +12,8 @@ This kind of thing causes me grief, so I thought I'd write a simple .NET Windows
 That's all I've thought up so far. Have any ideas for some features? I'll be glad to hear them.
 
 ###To Do:
-- Finish and test the query to the Evernote API
-- Handle a RATE_LIMIT_REACHED exception from Evernote
-- Implement OAuth (just used the developer sandbox right now)
+- Test the query to the Evernote API
+- Implement OAuth (just uses the developer sandbox right now)
 - Add a report page that shows how many notes were successfully deleted/skipped after the user runs the tool on their Evernote account
 - Add an about page with the license stuff for this application and for Evernote's API
 

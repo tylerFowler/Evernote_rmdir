@@ -26,14 +26,22 @@ namespace EvernoteInterface
         /// <returns>List of Notebook objects.</returns>
         public List<Notebook> GetNotebooks()
         {
-            // Try block that catches instances where listNotebooks returns either a EDAMUserException or EDAMSystemException
             try
             {
                 return noteStore.listNotebooks(authToken);
             }
-            catch (Exception e)
+            catch (EDAMUserException e)
             {
                 MessageBox.Show(e.ToString());
+                throw new EvernoteException();
+            }
+            catch (EDAMSystemException e)
+            {
+                if (e.ErrorCode == EDAMErrorCode.RATE_LIMIT_REACHED)
+                    HandleRateLimitExceeded(e.RateLimitDuration);
+                else
+                    MessageBox.Show(e.ToString());
+                    
                 throw new EvernoteException();
             }
         }
@@ -62,17 +70,6 @@ namespace EvernoteInterface
             spec.IncludeNotebookGuid = true;
             spec.IncludeAttributes = true;
 
-            //TODO: make sure this only catches the stuff in the notebooks that we want
-            /* Try block for retrieving the metadata for the notes we want.
-             * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
-             *   BAD_DATA_FORMAT "offset" : not between 0 and EDAM_USER_NOTES_MAX
-             *   BAD_DATA_FORMAT "maxNotes" : not between 0 and EDAM_USER_NOTES_MAX
-             *   BAD_DATA_FORMAT "NoteFilter.notebookGuid" : notebook GUID malformed
-             *   BAD_DATA_FORMAT "NoteFilter.tagGuids" : if any tags are malformed
-             *   BAD_DATA_FORMAT "NoteFilter.words" : if search string is too long (shouldn't be)
-             * Possible outcomes with Evernote.EDAM.Error.EDAMNotFoundException:
-             *   "Notebook.guid" : Evernote can't find notebook with this GUID
-             */
             try
             {
                 NotesMetadataList notes = noteStore.findNotesMetadata(authToken, filter, 0, Evernote.EDAM.Limits.Constants.EDAM_USER_NOTES_MAX, spec);
@@ -92,29 +89,7 @@ namespace EvernoteInterface
             {
                 if (e.ErrorCode == EDAMErrorCode.BAD_DATA_FORMAT)
                 {
-                    String userErrorMessage = String.Empty;
-
-                    switch (e.Parameter)
-                    {
-                        case "offset":
-                            userErrorMessage = "Offset not between 0 and EDAM_USER_NOTES_MAX";
-                            break;
-                        case "maxNotes":
-                            userErrorMessage = "Max number of notes to return isn't between 0 and EDAM_USER_NOTES_MAX";
-                            break;
-                        case "NoteFilter.notebookGuid":
-                            userErrorMessage = "Notebook GUID is malformed";
-                            break;
-                        case "NoteFilter.tagGuids":
-                            userErrorMessage = "Tags aren't formatted correctly, only select one tag name to be used";
-                            break;
-                        case "NoteFilter.words":
-                            userErrorMessage = "Search string is too long, try using a shorter tag?";
-                            break;
-                        default:
-                            userErrorMessage = e.ToString();
-                            break;
-                    }
+                    HandleBadQueryFormat(e);
                 }
                 else
                 {
@@ -123,13 +98,18 @@ namespace EvernoteInterface
 
                 throw new EvernoteException();
             }
-            catch (EDAMNotFoundException e) //NOTE: maybe this isn't necessary? I don't search by notebook guid at all.
+            catch (EDAMNotFoundException e)
             {
-                if (e.ToString().Contains("Notebook.guid"))
-                    MessageBox.Show("Notebook wasn't found in the Evernote service (search is by GUID)");
+                MessageBox.Show(e.ToString());
+                throw new EvernoteException();
+            }
+            catch (EDAMSystemException e)
+            {
+                if (e.ErrorCode == EDAMErrorCode.RATE_LIMIT_REACHED)
+                    HandleRateLimitExceeded(e.RateLimitDuration);
                 else
                     MessageBox.Show(e.ToString());
-
+                    
                 throw new EvernoteException();
             }
         }
@@ -144,7 +124,7 @@ namespace EvernoteInterface
             // Get the completed date and parse it as the colloquial DateTime object from the Unix Epoch date
             DateTime dateCompleted = new DateTime(1970, 1, 1, 0, 0, 0, 0);
             dateCompleted = dateCompleted.AddMilliseconds((Double)note.Attributes.ReminderDoneTime);
-
+            
             return new Reminder(note.Guid, note.NotebookGuid, dateCompleted);
         }
 
@@ -199,9 +179,55 @@ namespace EvernoteInterface
                     else
                         continue; //if there's some other problem just skip this note
                 }
+                catch (EDAMSystemException e)
+                {
+                    if (e.ErrorCode == EDAMErrorCode.RATE_LIMIT_REACHED)
+                        HandleRateLimitExceeded(e.RateLimitDuration);
+                    else
+                        MessageBox.Show(e.ToString());
+
+                    //we actually want to stop here because we don't want to continue making more calls
+                    throw new EvernoteException();
+                }
             }
 
             //here is where we're gonna wanna return information for the report
+        }
+
+        private static void HandleBadQueryFormat(EDAMUserException e)
+        {
+            String userErrorMessage = String.Empty;
+
+            switch (e.Parameter)
+            {
+                case "offset":
+                    userErrorMessage = "Offset not between 0 and EDAM_USER_NOTES_MAX";
+                    break;
+                case "maxNotes":
+                    userErrorMessage = "Max number of notes to return isn't between 0 and EDAM_USER_NOTES_MAX";
+                    break;
+                case "NoteFilter.notebookGuid":
+                    userErrorMessage = "Notebook GUID is malformed";
+                    break;
+                case "NoteFilter.tagGuids":
+                    userErrorMessage = "Tags aren't formatted correctly, only select one tag name to be used";
+                    break;
+                case "NoteFilter.words":
+                    userErrorMessage = "Query string is too long, try using a shorter tag?";
+                    break;
+                default:
+                    userErrorMessage = e.ToString();
+                    break;
+            }
+
+            MessageBox.Show(userErrorMessage);
+        }
+
+        protected void HandleRateLimitExceeded(int rateLimitDuration)
+        {
+            //convert seconds to minutes
+            double minutes = rateLimitDuration / 60.0;
+            MessageBox.Show("Rate limit reached. Try again in " + minutes.ToString("F") + " minute(s).");
         }
     }
 }
