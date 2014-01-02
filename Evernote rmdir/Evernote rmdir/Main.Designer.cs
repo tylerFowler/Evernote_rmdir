@@ -167,7 +167,7 @@
             // 
             // txtbxExcludedTag
             // 
-            this.txtbxExcludedTag.Location = new System.Drawing.Point(174, 57);
+            this.txtbxExcludedTag.Location = new System.Drawing.Point(172, 57);
             this.txtbxExcludedTag.Name = "txtbxExcludedTag";
             this.txtbxExcludedTag.Size = new System.Drawing.Size(114, 20);
             this.txtbxExcludedTag.TabIndex = 14;
@@ -199,9 +199,12 @@
             this.Controls.Add(this.chkbxDaysOffset);
             this.Controls.Add(this.chkbxDeleteAllReminders);
             this.Controls.Add(this.btnRun);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Main";
-            this.Text = "Main";
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
+            this.Text = "Evernote rmdir";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Main_FormClosed);
             this.Load += new System.EventHandler(this.Main_Load);
             this.statusStrip.ResumeLayout(false);

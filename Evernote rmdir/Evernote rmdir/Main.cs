@@ -79,10 +79,8 @@ namespace Evernote_rmdir
             try
             {
                 ClearPreviousUserCriteria();
-                
                 CollectAndValidateUserCriteria();
 
-                //NOTE: I'm not sure that these values won't be null... could be an issue
                 List<Reminder> reminders = evernote.GetCompletedRemindersMatchingCriteria(numCutoffDays, tagToExclude);
 
                 selectedReminders = FilterRemindersFromNotebooks(reminders, selectedNotebooks);
@@ -111,8 +109,17 @@ namespace Evernote_rmdir
             deleteRemindersBeforeCutoffDate = chkbxDeleteAllReminders.Checked ? false : chkbxDaysOffset.Checked;
             excludeRemindersWithTag = chkbxDeleteAllReminders.Checked ? false : chkbxExcludeTag.Checked;
 
-            if (excludeRemindersWithTag) tagToExclude = txtbxExcludedTag.Text.Trim();
+            //make sure there's a tag to exclude if the option is checked
+            if (excludeRemindersWithTag)
+            {
+                tagToExclude = txtbxExcludedTag.Text.Trim();
 
+                if (String.IsNullOrEmpty(tagToExclude))
+                {
+                    MessageBox.Show("Please specify a tag to exclude");
+                    throw new ApplicationException();
+                }
+            }
 
             //if the option to use a cutoff date is selected, make sure the value is a valid number
             if (deleteRemindersBeforeCutoffDate)
@@ -154,7 +161,6 @@ namespace Evernote_rmdir
         private List<Reminder> FilterRemindersFromNotebooks(List<Reminder> reminderList, List<Notebook> includedNotebooks)
         {
             //finds all reminders that have a notebook Guid that exists in the notebooks list
-            //MessageBox.Show("Filtering...");
             return reminderList.FindAll(r => includedNotebooks.Exists(n => n.Guid == r.GetNotebookGuid()));
         }
 
@@ -165,14 +171,22 @@ namespace Evernote_rmdir
         /// <param name="e"></param>
         private void btnRun_Click(object sender, EventArgs e)
         {
-            //simply call the delete on the finalized list, maybe ask the user if he/she is sure?
-            //might also have it to where it has a message saying it's done or something... 
-            try //NOTE: this try block is where I'd do the report
+            try
             {
-                evernote.DeleteReminders(selectedReminders);
+                int numErrors;
+                evernote.DeleteReminders(selectedReminders, out numErrors);
 
-                lblStatusBar.Text = selectedReminders.Count + " Reminders successfully deleted";
+                if (numErrors > 0) MessageBox.Show("There were " + numErrors + " that could not be deleted.");
+
+                int totalRemindersDeleted = selectedReminders.Count - numErrors;
+                if (totalRemindersDeleted != 1)
+                    lblStatusBar.Text = totalRemindersDeleted + " Reminders successfully deleted";
+                else
+                    lblStatusBar.Text = totalRemindersDeleted + " Reminder successfully deleted";
+
                 ClearPreviousUserCriteria();
+
+                btnRun.Enabled = false;
             }
             catch (EvernoteException)
             {

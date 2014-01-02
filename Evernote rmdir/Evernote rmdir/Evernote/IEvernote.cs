@@ -63,7 +63,7 @@ namespace EvernoteInterface
             else //matches all completed reminders marked as done before the number of days specified
                 filter.Words = "reminderDoneTime:* -reminderDoneTime:day-" + numDays.ToString();
 
-            if (String.IsNullOrEmpty(tag))
+            if (!String.IsNullOrEmpty(tag))
                 filter.Words += " -tag:" + tag; 
 
             NotesMetadataResultSpec spec = new NotesMetadataResultSpec();
@@ -125,22 +125,15 @@ namespace EvernoteInterface
             DateTime dateCompleted = new DateTime(1970, 1, 1, 0, 0, 0, 0);
             dateCompleted = dateCompleted.AddMilliseconds((Double)note.Attributes.ReminderDoneTime);
             
-            return new Reminder(note.Guid, note.NotebookGuid, dateCompleted);
+            return new Reminder(note.Title, note.Guid, note.NotebookGuid, dateCompleted);
         }
 
         /// <summary>
         /// Goes through a List of Reminders and deletes each note the objects refer to.
         /// </summary>
         /// <param name="reminders">The list of Reminder objects who's note should be deleted</param>
-        public void DeleteReminders(List<Reminder> reminders)
+        public void DeleteReminders(List<Reminder> reminders, out int numErrors)
         {
-            //TODO: implement logging here, as this is where everything from the report will come from
-
-            //NOTE: for this we don't necessarily want to throw an EvernoteException exception, these will actually be handled gracefully.
-            //      For PERMISSION_DENIED: we just want to inform the user that they don't have permission, maybe prompt user to reenter credentials? 
-            //                             Could be something we want to call in OAuth... which would be a problem for us.
-            //      For DATA_CONFLICT: just skip this note, add it to the log if I go that route
-
             /* Try block for deleting the selected notes
              * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
              *   PERMISSION_DENIED "Note" : user doesn't have permission to update/delete notes
@@ -148,6 +141,8 @@ namespace EvernoteInterface
              * Possible outcomes with Evernote.EDAM.Error.EDAMNotFoundException:
              *   "Note.guid" : note not found by GUID
              */
+            numErrors = 0;
+
             foreach (Reminder r in reminders)
             {
                 try
@@ -161,23 +156,25 @@ namespace EvernoteInterface
                         MessageBox.Show("You don't have permission to update or delete notes on this Evernote account");
                         throw new EvernoteException();
                     }
-                    else if (e.ErrorCode == EDAMErrorCode.DATA_CONFLICT && e.Parameter == "Note.guid")
+                    else if (e.ErrorCode == EDAMErrorCode.DATA_CONFLICT && e.Parameter == "Note.guid") //TODO: combine these bottom two if I don't want to report details
                     {
-                        //the note's already been deleted so just skip this one, add it to the log if necessary
+                        numErrors++;
                         continue;
                     }
                     else
-                        continue; //if there's some other problem just skip this note
+                    {
+                        numErrors++;
+                        continue;
+                    }
                 }
                 catch (EDAMNotFoundException e)
                 {
+                    numErrors++;
+
                     if (e.ToString().Contains("Note.guid"))
-                    {
-                        //if we're here, it means that the note wasn't found and we should skip it and log it in the report
                         continue;
-                    }
                     else
-                        continue; //if there's some other problem just skip this note
+                        continue;
                 }
                 catch (EDAMSystemException e)
                 {
@@ -190,8 +187,6 @@ namespace EvernoteInterface
                     throw new EvernoteException();
                 }
             }
-
-            //here is where we're gonna wanna return information for the report
         }
 
         private static void HandleBadQueryFormat(EDAMUserException e)

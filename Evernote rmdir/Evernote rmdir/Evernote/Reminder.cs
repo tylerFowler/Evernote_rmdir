@@ -9,16 +9,20 @@ namespace EvernoteInterface
 {
     public class Reminder
     {
+        private String title;
         private String guid;
         private String notebookGuid;
         private DateTime reminderCompleteDate; //corresponds to the reminderDoneTime attribute of a note
 
-        public Reminder(String guid, String notebookGuid, DateTime timeCompleted)
+        public Reminder(String title, String guid, String notebookGuid, DateTime timeCompleted)
         {
+            this.title = title;
             this.guid = guid;
             this.notebookGuid = notebookGuid;
             this.reminderCompleteDate = timeCompleted;
         }
+
+        public String GetTitle() { return title; }
 
         public String GetNotebookGuid() { return notebookGuid; }
 
