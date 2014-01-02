@@ -4,10 +4,6 @@ using Evernote.EDAM.Type;
 using Evernote.EDAM.UserStore;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace EvernoteInterface
@@ -134,6 +130,7 @@ namespace EvernoteInterface
         /// <param name="reminders">The list of Reminder objects who's note should be deleted</param>
         public void DeleteReminders(List<Reminder> reminders, out int numErrors)
         {
+
             /* Try block for deleting the selected notes
              * Possible outcomes with Evernote.EDAM.Error.EDAMUserException:
              *   PERMISSION_DENIED "Note" : user doesn't have permission to update/delete notes
@@ -189,6 +186,10 @@ namespace EvernoteInterface
             }
         }
 
+        /// <summary>
+        /// Extracts information from a given EDAMUserException to display to the user more information about the error.
+        /// </summary>
+        /// <param name="e">EDAMUserException to check the parameters of.</param>
         private static void HandleBadQueryFormat(EDAMUserException e)
         {
             String userErrorMessage = String.Empty;
@@ -218,6 +219,10 @@ namespace EvernoteInterface
             MessageBox.Show(userErrorMessage);
         }
 
+        /// <summary>
+        /// Informs the user what problem has occurred and how much longer the Rate Limit will deny the tool requests to the API.
+        /// </summary>
+        /// <param name="rateLimitDuration">Amount of time (in seconds) to wait until the rate limit is up.</param>
         protected void HandleRateLimitExceeded(int rateLimitDuration)
         {
             //convert seconds to minutes

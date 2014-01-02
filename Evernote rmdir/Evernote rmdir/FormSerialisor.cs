@@ -1,9 +1,8 @@
 ﻿using System;
 using System.IO;
-using System.Windows.Forms;
 using System.Reflection;
+using System.Windows.Forms;
 using System.Xml;
-using System.Diagnostics;
 
 namespace FormSerialisation {
   public static class FormSerialisor {

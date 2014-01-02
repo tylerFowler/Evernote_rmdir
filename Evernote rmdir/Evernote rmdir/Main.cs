@@ -1,26 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using Evernote.EDAM.Type;
 using EvernoteInterface;
-using System.IO;
 using FormSerialisation;
-using Evernote.EDAM.Type;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Windows.Forms;
 
 namespace Evernote_rmdir
 {
     public partial class Main : Form
     {
-        //constants
         private const String STATUS_BAR_TEXT = "Number of completed Reminders to be deleted:";
 
         //primary interface into the Evernote service
-        //use DevAuth for now, but later we'll use OAuth
+        //to use OAuth, just change the class here
         private EvernoteDevAuth evernote;
 
         //keeps track of values in the form
@@ -65,8 +58,8 @@ namespace Evernote_rmdir
         private void Main_Load(object sender, EventArgs e)
         {
             //if there is a settings file from a previous session, use it
-            //if (File.Exists(settingsPath))
-                //FormSerialisor.Deserialise(this, settingsPath);
+            if (File.Exists(settingsPath))
+                FormSerialisor.Deserialise(this, settingsPath);
         }
 
         /// <summary>
@@ -79,6 +72,7 @@ namespace Evernote_rmdir
             try
             {
                 ClearPreviousUserCriteria();
+
                 CollectAndValidateUserCriteria();
 
                 List<Reminder> reminders = evernote.GetCompletedRemindersMatchingCriteria(numCutoffDays, tagToExclude);
@@ -109,27 +103,25 @@ namespace Evernote_rmdir
             deleteRemindersBeforeCutoffDate = chkbxDeleteAllReminders.Checked ? false : chkbxDaysOffset.Checked;
             excludeRemindersWithTag = chkbxDeleteAllReminders.Checked ? false : chkbxExcludeTag.Checked;
 
-            //make sure there's a tag to exclude if the option is checked
-            if (excludeRemindersWithTag)
+            //if no options are selected, remind the user to check at least one option
+            if (deleteAllReminders == false && deleteRemindersBeforeCutoffDate == false && excludeRemindersWithTag == false)
             {
-                tagToExclude = txtbxExcludedTag.Text.Trim();
-
-                if (String.IsNullOrEmpty(tagToExclude))
-                {
-                    MessageBox.Show("Please specify a tag to exclude");
-                    throw new ApplicationException();
-                }
+                MessageBox.Show("You must select at least one option for filtering reminders.");
+                throw new ApplicationException();
             }
 
-            //if the option to use a cutoff date is selected, make sure the value is a valid number
-            if (deleteRemindersBeforeCutoffDate)
-                if (!Int32.TryParse(txtbxNumDaysOffset.Text, out numCutoffDays))
-                {
-                    MessageBox.Show("You must enter a valid integer from 0 to 999 for the number of cutoff days.");
-                    throw new ApplicationException();
-                }
+            ValidateExcludeTag();
 
+            CheckCutoffDateIsAValidNumber();
 
+            ValidateAndGetNotebookSelection();
+        }
+
+        /// <summary>
+        /// Checks at least one Notebook is selected and then adds the selection to the local variable.
+        /// </summary>
+        private void ValidateAndGetNotebookSelection()
+        {
             //make sure that at least one notebook is selected to be included and add the checked notebooks to the list
             if (chkbxListNotebooks.CheckedItems.Count == 0)
             {
@@ -142,13 +134,37 @@ namespace Evernote_rmdir
 
             foreach (Object notebook in chkbxListNotebooks.CheckedItems)
                 selectedNotebooks.Add((Notebook)notebook);
+        }
 
+        /// <summary>
+        /// Checks that the Cutoff Date is a valid number (0 - 999).
+        /// </summary>
+        private void CheckCutoffDateIsAValidNumber()
+        {
+            //if the option to use a cutoff date is selected, make sure the value is a valid number
+            if (deleteRemindersBeforeCutoffDate)
+                if (!Int32.TryParse(txtbxNumDaysOffset.Text, out numCutoffDays))
+                {
+                    MessageBox.Show("You must enter a valid integer from 0 to 999 for the number of cutoff days.");
+                    throw new ApplicationException();
+                }
+        }
 
-            //if no options are selected, remind the user to check at least one option
-            if (deleteAllReminders == false && deleteRemindersBeforeCutoffDate == false && excludeRemindersWithTag == false)
+        /// <summary>
+        /// Checks that the Exclude Tag is a valid tag name.
+        /// </summary>
+        private void ValidateExcludeTag()
+        {
+            //make sure there's a tag to exclude if the option is checked
+            if (excludeRemindersWithTag)
             {
-                MessageBox.Show("You must select at least one option for filtering reminders.");
-                throw new ApplicationException();
+                tagToExclude = txtbxExcludedTag.Text.Trim();
+
+                if (String.IsNullOrEmpty(tagToExclude))
+                {
+                    MessageBox.Show("Please specify a tag to exclude");
+                    throw new ApplicationException();
+                }
             }
         }
 
@@ -194,22 +210,15 @@ namespace Evernote_rmdir
             }
         }
 
+        /// <summary>
+        /// Clears the internal data collected off of the Form when the user last clicked the Check Reminders button.
+        /// </summary>
         private void ClearPreviousUserCriteria()
         {
             numCutoffDays = 0;
             tagToExclude = String.Empty;
             selectedNotebooks.Clear();
             selectedReminders.Clear();
-        }
-
-        private void Util_ShowFormValues()
-        {
-            MessageBox.Show("deleteAllReminders: " + deleteAllReminders + "\n"
-                            + "deleteRemindersBeforeCutoffDate: " + deleteRemindersBeforeCutoffDate + "\n"
-                            + "excludeRemindersWithTag: " + excludeRemindersWithTag + "\n"
-                            + "tagToExclude: " + tagToExclude + "\n"
-                            + "numCutoffDays: " + numCutoffDays
-                            + "notebooks count: " + selectedNotebooks.Count);
         }
 
         /// <summary>
@@ -284,7 +293,7 @@ namespace Evernote_rmdir
         private void Main_FormClosed(object sender, FormClosedEventArgs e)
         {
             //save the state of the controls for later recall
-            //FormSerialisor.Serialise(this, settingsPath);
+            FormSerialisor.Serialise(this, settingsPath);
         }
     }
 }

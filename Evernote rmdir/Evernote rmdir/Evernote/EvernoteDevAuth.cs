@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.IO;
-using Evernote.EDAM.Type;
-using Evernote.EDAM.UserStore;
+﻿using Evernote.EDAM.Error;
 using Evernote.EDAM.NoteStore;
-using Evernote.EDAM.Error;
-using Thrift;
+using Evernote.EDAM.UserStore;
+using System;
+using System.Windows.Forms;
 using Thrift.Protocol;
 using Thrift.Transport;
 
