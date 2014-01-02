@@ -2,20 +2,19 @@ Evernote rmdir
 ============================
 Are you like me and have a steady pile of growing notes that were once reminders? Unfortunately, Evernote doesn't offer an option to delete all reminders in your account that are marked as completed, and so now I have about a dozen useless notes in my personal notebook marked "go grocery shopping" or "study for that exam tomorrow!"
 
-This kind of thing causes me grief, so I thought I'd write a simple .NET Windows application that deletes these unwanted reminders.
+This kind of thing causes me grief, so I thought I'd write a simple .NET Windows application that deletes these unwanted reminders. Evernote rmdir will go through your account, per your criteria (searching certain notebooks, excluding reminders with a certain tag, or excluding the reminders that were marked as completed within a certain number of days) and move these notes to the trash. 
+
+Protip: because of the way this tool queries your Evernote account, when you set what tag to exclude, you can use a bit of Evernote's searching lingo. For example if you type in "a*" then it will exclude every reminder with a tag that starts with the letter a. (For a more complete list of searching terms: http://dev.evernote.com/doc/articles/search_grammar.php)
 
 ####Feature List (so far)
 - Only delete reminders that have been marked as completed for a certain number of days
 - List view to select the notebooks to include in the deletion
 - Exclude reminders with a particular tag
-
-That's all I've thought up so far. Have any ideas for some features? I'll be glad to hear them.
+- 
 
 ###To Do:
-- Test the query to the Evernote API
+- Test the query to the Evernote API (more thoroughly)
 - Implement OAuth (just uses the developer sandbox right now)
-- Add a report page that shows how many notes were successfully deleted/skipped after the user runs the tool on their Evernote account
-- Add an about page with the license stuff for this application and for Evernote's API
 
 ### License
 The MIT License (MIT)
