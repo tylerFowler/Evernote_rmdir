@@ -14,6 +14,7 @@ Protip: because of the way this tool queries your Evernote account, when you set
 ####To Do:
 - Test the query to the Evernote API (more thoroughly)
 - Implement OAuth (just uses the developer sandbox right now)
+- Add an undo button
 
 ###How to Use:
 1. Open the Evernote rmdir.sln file
