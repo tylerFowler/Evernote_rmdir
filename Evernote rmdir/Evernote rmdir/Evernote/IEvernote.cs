@@ -60,8 +60,9 @@ namespace EvernoteInterface
                 filter.Words = "reminderDoneTime:* -reminderDoneTime:day-" + numDays.ToString();
 
             if (!String.IsNullOrEmpty(tag))
-                filter.Words += " -tag:" + tag; 
+                filter.Words += " -tag:" + tag;
 
+            MessageBox.Show("Search String: " + filter.Words);
             NotesMetadataResultSpec spec = new NotesMetadataResultSpec();
             spec.IncludeNotebookGuid = true;
             spec.IncludeAttributes = true;

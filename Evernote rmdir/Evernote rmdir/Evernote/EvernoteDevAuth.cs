@@ -92,7 +92,11 @@ namespace EvernoteInterface
              */
             try
             {
-                String noteStoreUrl = userStore.getNoteStoreUrl(authToken); //This isn't used with OAuth
+                //if you're using your sandbox account use this:
+                String noteStoreUrl = userStore.getNoteStoreUrl(authToken); 
+
+                //if you're using your personal account with a developer token use this: (enter your personal NoteStore URL)
+                //String noteStoreUrl = "";
 
                 TTransport noteStoreTransport = new THttpClient(new Uri(noteStoreUrl));
                 TProtocol noteStoreProtocol = new TBinaryProtocol(noteStoreTransport);
