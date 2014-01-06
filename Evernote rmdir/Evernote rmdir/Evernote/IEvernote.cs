@@ -62,7 +62,6 @@ namespace EvernoteInterface
             if (!String.IsNullOrEmpty(tag))
                 filter.Words += " -tag:" + tag;
 
-            MessageBox.Show("Search String: " + filter.Words);
             NotesMetadataResultSpec spec = new NotesMetadataResultSpec();
             spec.IncludeNotebookGuid = true;
             spec.IncludeAttributes = true;
