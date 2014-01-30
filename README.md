@@ -14,7 +14,6 @@ Protip Pt. 2: if you're a bit on the edge about running a tool that deletes note
 - Exclude reminders with a particular tag
 
 ####To Do:
-- Test the query to the Evernote API (more thoroughly)
 - Implement OAuth (just uses the developer sandbox right now)
 - Add an undo button
 
