@@ -192,6 +192,8 @@ namespace Evernote_rmdir
                 int numErrors;
                 evernote.DeleteReminders(selectedReminders, out numErrors);
 
+                lblStatusBar.Text = "Deleting reminders...";
+
                 if (numErrors > 0) MessageBox.Show("There were " + numErrors + " that could not be deleted.");
 
                 int totalRemindersDeleted = selectedReminders.Count - numErrors;
