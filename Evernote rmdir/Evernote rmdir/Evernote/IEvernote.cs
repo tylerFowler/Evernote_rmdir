@@ -186,6 +186,25 @@ namespace EvernoteInterface
             }
         }
 
+        public void RestoreReminders(List<Reminder> reminders, out int numErrors)
+        {
+            //methodology for restoring a note: make sure the note was deleted*, set the active property to TRUE, call NoteStore.UpdateNote
+            //  *: if a note is deleted the 'deleted' property will be present (it's a timestamp), make sure it's there so we don't restore notes that aren't
+            //     deleted.
+
+            //take the list of reminders and set their state to 'Active', don't forget Error Handling!
+            numErrors = 0;
+
+            foreach (Reminder r in reminders)
+            {
+                try
+                {
+          
+                }
+                
+            }
+        }
+
         /// <summary>
         /// Extracts information from a given EDAMUserException to display to the user more information about the error.
         /// </summary>

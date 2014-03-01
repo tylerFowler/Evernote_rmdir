@@ -11,6 +11,7 @@ namespace Evernote_rmdir
     public partial class Main : Form
     {
         private const String STATUS_BAR_TEXT = "Number of completed Reminders to be deleted:";
+        private enum RUN_BUTTON_STATE { RUN, UNDO };
 
         //primary interface into the Evernote service
         //to use OAuth, just change the class here
@@ -24,6 +25,7 @@ namespace Evernote_rmdir
         private string tagToExclude;
         private List<Notebook> selectedNotebooks;
         private List<Reminder> selectedReminders;
+        private RUN_BUTTON_STATE runButtonState;
 
         String settingsPath = Path.Combine(Environment.CurrentDirectory, @"\settings.xml");
 
@@ -43,6 +45,8 @@ namespace Evernote_rmdir
 
             selectedNotebooks = new List<Notebook>();
             selectedReminders = new List<Reminder>();
+
+            runButtonState = RUN_BUTTON_STATE.RUN;
 
             if (chkbxDeleteAllReminders.Checked == true)
                 ToggleDeleteAllReminders();
@@ -187,12 +191,21 @@ namespace Evernote_rmdir
         /// <param name="e"></param>
         private void btnRun_Click(object sender, EventArgs e)
         {
+            //if the Undo state is active, run that method instead
+            if (runButtonState == RUN_BUTTON_STATE.UNDO)
+            {
+                Undo();
+                return;
+            }
+
             try
             {
                 int numErrors;
-                evernote.DeleteReminders(selectedReminders, out numErrors);
-
+                
                 lblStatusBar.Text = "Deleting reminders...";
+                btnRun.Enabled = false;
+
+                evernote.DeleteReminders(selectedReminders, out numErrors);
 
                 if (numErrors > 0) MessageBox.Show("There were " + numErrors + " that could not be deleted.");
 
@@ -204,10 +217,47 @@ namespace Evernote_rmdir
 
                 ClearPreviousUserCriteria();
 
+                ChangeRunButtonState(RUN_BUTTON_STATE.UNDO);
+                //we want the Undo button to be enabled after you run the tool
+                btnRun.Enabled = true; 
+            }
+            catch (EvernoteException)
+            {
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Click handler for the Undo button (the Run button in the Undo state).
+        /// </summary>
+        private void Undo()
+        {
+            try
+            {
+                //NOTE: I don't think we need a variable to measure the amount of errors because if we can delete them, we should be able to restore them
+                //      HOWEVER, there is the edge case where errors occurred in the deletion, they'll still be in the selectedReminders list. So do it anyways.
+
+                int numErrors;
+
+                evernote.RestoreReminders(selectedReminders, out numErrors);
+
+                int totalRemindersRestored = selectedReminders.Count - numErrors;
+                if (totalRemindersRestored != 1)
+                    lblStatusBar.Text = totalRemindersRestored + " Reminders successfully restored";
+                else
+                    lblStatusBar.Text = totalRemindersRestored + " Reminder successfully restored";
+
+                ChangeRunButtonState(RUN_BUTTON_STATE.RUN);
+                //we don't want the run button to be active until the reminders have been checked
                 btnRun.Enabled = false;
             }
             catch (EvernoteException)
             {
+                //there's a problem so the evernote object should give an explanation, so just reset the button entirely
+                lblStatusBar.Text = STATUS_BAR_TEXT;
+                ChangeRunButtonState(RUN_BUTTON_STATE.RUN);
+                btnRun.Enabled = false;
+
                 return;
             }
         }
@@ -221,6 +271,26 @@ namespace Evernote_rmdir
             tagToExclude = String.Empty;
             selectedNotebooks.Clear();
             selectedReminders.Clear();
+        }
+
+        /// <summary>
+        /// Changes the Run button state either to RUN or UNDO.
+        /// </summary>
+        /// <param name="state">The state to toggle to</param>
+        private void ChangeRunButtonState(RUN_BUTTON_STATE state)
+        {
+            switch (state)
+            {
+                case RUN_BUTTON_STATE.RUN:
+                    btnRun.Text = "Run";
+                    runButtonState = RUN_BUTTON_STATE.RUN;
+                    break;
+                case RUN_BUTTON_STATE.UNDO:
+                    btnRun.Text = "Undo";
+                    runButtonState = RUN_BUTTON_STATE.UNDO;
+                    break;
+            }
+                
         }
 
         /// <summary>
