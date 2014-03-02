@@ -153,11 +153,6 @@ namespace EvernoteInterface
                         MessageBox.Show("You don't have permission to update or delete notes on this Evernote account");
                         throw new EvernoteException();
                     }
-                    else if (e.ErrorCode == EDAMErrorCode.DATA_CONFLICT && e.Parameter == "Note.guid") //TODO: combine these bottom two if I don't want to report details
-                    {
-                        numErrors++;
-                        continue;
-                    }
                     else
                     {
                         numErrors++;
@@ -192,16 +187,41 @@ namespace EvernoteInterface
             //  *: if a note is deleted the 'deleted' property will be present (it's a timestamp), make sure it's there so we don't restore notes that aren't
             //     deleted.
 
-            //take the list of reminders and set their state to 'Active', don't forget Error Handling!
             numErrors = 0;
 
             foreach (Reminder r in reminders)
             {
                 try
                 {
-          
+                    //get the corresponding note
+                    Note note = noteStore.getNote(authToken, r.GetReminderGuid(), false, false, false, false);
+
+                    //if the note hasn't been deleted, move on
+                    if (note.Active)
+                        break;
+                    else
+                        note.Active = true;
+
+                    note.__isset.deleted = false;
+
+                    noteStore.updateNote(authToken, note);
                 }
-                
+                catch (EDAMUserException e)
+                {
+                    //the only specific error we care about is the quota exceeded error
+                    if (e.ErrorCode == EDAMErrorCode.QUOTA_REACHED)
+                        MessageBox.Show("Your monthly quota on the Evernote service has been exceeded. To gain a higher quote, upgrade to Evernote Premium.");
+                    else
+                    {
+                        numErrors++;
+                        continue;
+                    }   
+                }
+                catch (EDAMNotFoundException e)
+                {
+                    numErrors++;
+                    continue;
+                }
             }
         }
 

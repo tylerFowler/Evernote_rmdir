@@ -6,16 +6,16 @@ This kind of thing causes me grief, so I thought I'd write a simple .NET Windows
 
 Protip: because of the way this tool queries your Evernote account, when you set what tag to exclude, you can use a bit of Evernote's searching lingo. For example if you type in "a*" then it will exclude every reminder with a tag that starts with the letter a. (For a more complete list of searching terms: http://dev.evernote.com/doc/articles/search_grammar.php)
 
-Protip Pt. 2: if you're a bit on the edge about running a tool that deletes notes out of your Evernote account, then you and I have something in common. The application uses search syntax to determine which notes to delete based on your criteria (as stated above). So if  you set the tool to delete all completed reminders, you can go to Evernote and run a search for ```reminderDoneTime:*``` and it will show you all the notes that Evernote rmdir would delete in that pass.
+Protip Pt. 2: if you're a bit on the edge about running a tool that deletes notes out of your Evernote account, then you and I have something in common. The application uses search syntax to determine which notes to delete based on your criteria (as stated above). So if  you set the tool to delete all completed reminders, you can go to Evernote and run a search for ```reminderDoneTime:*``` and it will show you all the notes that Evernote rmdir would delete in that pass. Plus there's an Undo button now so you really can't go wrong.
 
 ####Feature List (so far)
 - Only delete reminders that have been marked as completed for a certain number of days
 - List view to select the notebooks to include in the deletion
 - Exclude reminders with a particular tag
+- Restore the notes you just deleted (Undo functionality)
 
 ####To Do:
 - Implement OAuth (just uses the developer sandbox right now)
-- Add an undo button
 
 ###How to Use:
 1. Open the Evernote rmdir.sln file

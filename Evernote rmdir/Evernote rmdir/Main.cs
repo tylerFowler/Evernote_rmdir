@@ -207,15 +207,19 @@ namespace Evernote_rmdir
 
                 evernote.DeleteReminders(selectedReminders, out numErrors);
 
-                if (numErrors > 0) MessageBox.Show("There were " + numErrors + " that could not be deleted.");
+                if (numErrors > 0)
+                {
+                    if (numErrors > 1)
+                        MessageBox.Show("There were " + numErrors + " reminders that could not be deleted.");
+                    else
+                        MessageBox.Show("There was 1 reminder that could not be deleted.");
+                }
 
                 int totalRemindersDeleted = selectedReminders.Count - numErrors;
                 if (totalRemindersDeleted != 1)
                     lblStatusBar.Text = totalRemindersDeleted + " Reminders successfully deleted";
                 else
                     lblStatusBar.Text = totalRemindersDeleted + " Reminder successfully deleted";
-
-                ClearPreviousUserCriteria();
 
                 ChangeRunButtonState(RUN_BUTTON_STATE.UNDO);
                 //we want the Undo button to be enabled after you run the tool
@@ -240,6 +244,14 @@ namespace Evernote_rmdir
                 int numErrors;
 
                 evernote.RestoreReminders(selectedReminders, out numErrors);
+
+                if (numErrors > 0)
+                {
+                    if (numErrors > 1)
+                        MessageBox.Show("There were " + numErrors + " reminders that could not be restored.");
+                    else
+                        MessageBox.Show("There was 1 reminder that could not be restored.");
+                }
 
                 int totalRemindersRestored = selectedReminders.Count - numErrors;
                 if (totalRemindersRestored != 1)
